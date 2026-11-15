@@ -1,4 +1,4 @@
-"""Assign new wholesale customer spend to a saved K-Means cluster."""
+"""Assign new wholesale customer spend to a saved cluster model."""
 from __future__ import annotations
 import argparse
 from pathlib import Path
@@ -24,6 +24,9 @@ def main():
     scaled = bundle["scaler"].transform(np.log1p(values.reshape(1, -1)))
     cluster = int(bundle["model"].predict(scaled)[0])
     print(f"Assigned cluster: {cluster}")
+    if hasattr(bundle["model"], "predict_proba"):
+        membership = float(bundle["model"].predict_proba(scaled)[0, cluster])
+        print(f"Gaussian mixture membership probability: {membership:.1%}")
     print("Input feature order: " + ", ".join(FEATURES))
 
 

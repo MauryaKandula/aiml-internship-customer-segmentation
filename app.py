@@ -19,6 +19,11 @@ def load_default_data():
     return pd.read_csv(DATA_PATH)
 
 
+@st.cache_data
+def cached_score_cluster_counts(spending, random_state):
+    return score_cluster_counts(spending, random_state)
+
+
 def read_upload(upload):
     records = pd.read_csv(upload)
     missing = [name for name in FEATURES if name not in records.columns]
@@ -35,9 +40,10 @@ def read_upload(upload):
 def main():
     st.set_page_config(page_title="Customer Segmentation Studio", page_icon="C", layout="wide")
     st.title("Wholesale Customer Segmentation Studio")
-    st.caption("Explore spending patterns, cluster quality, and customer profiles.")
+    st.caption("Compare hard and probabilistic clustering, inspect customer profiles, and assign new records.")
     st.sidebar.header("Analysis settings")
     upload = st.sidebar.file_uploader("Optional: use a compatible customer CSV", type=["csv"])
+    algorithm = st.sidebar.selectbox("Clustering method", ["K-Means", "Gaussian Mixture"])
     clusters = st.sidebar.slider("Number of clusters", 2, 8, 2)
     random_state = st.sidebar.number_input("Random seed", min_value=0, value=42, step=1)
 
@@ -53,10 +59,10 @@ def main():
         st.stop()
 
     with st.spinner("Building segments and calculating quality metrics..."):
-        fitted = fit_segmentation(spending, clusters, int(random_state))
+        fitted = fit_segmentation(spending, clusters, int(random_state), algorithm)
         labels = fitted["labels"]
         profiles = spending_profiles(spending, labels)
-        scores = score_cluster_counts(spending, int(random_state))
+        scores = cached_score_cluster_counts(spending, int(random_state))
         coordinates = PCA(n_components=2, random_state=int(random_state)).fit_transform(fitted["scaled"])
 
     st.sidebar.subheader("Assign a new customer")
@@ -70,14 +76,18 @@ def main():
         new_scaled = fitted["scaler"].transform(np.log1p(np.asarray(values).reshape(1, -1)))
         segment = int(fitted["model"].predict(new_scaled)[0])
         st.sidebar.success(f"Assigned to cluster {segment}")
+        if hasattr(fitted["model"], "predict_proba"):
+            membership = float(fitted["model"].predict_proba(new_scaled)[0, segment])
+            st.sidebar.caption(f"Gaussian mixture membership: {membership:.1%}")
 
     st.caption(f"Data source: {source} | {len(spending):,} customer records | {len(FEATURES)} spending features")
     a, b, c, d = st.columns(4)
-    a.metric("Customers", f"{len(spending):,}")
+    a.metric("Method / clusters", f"{algorithm} / {clusters}")
     b.metric("Silhouette", f"{fitted['metrics']['silhouette_score']:.3f}")
     c.metric("Davies-Bouldin", f"{fitted['metrics']['davies_bouldin_score']:.3f}",
              help="Lower values generally indicate tighter, better-separated clusters.")
     d.metric("ARI stability (5 seeds)", f"{fitted['metrics']['stability_ari_mean']:.3f}", help="Mean adjusted Rand agreement across alternate random seeds.")
+    st.caption(f"Analyzed {len(spending):,} customers across six transformed spending features. Internal scores compare structure; they do not establish business value.")
 
     map_tab, profile_tab, compare_tab = st.tabs(
         ["Segment map", "Profiles and customers", "Choose cluster count"]
@@ -116,18 +126,29 @@ def main():
             st.dataframe(pd.crosstab(labels, records["Region"], normalize="index").mul(100).round(1))
         exported = records.copy()
         exported["cluster"] = labels
+        if hasattr(fitted["model"], "predict_proba"):
+            exported["membership_probability"] = fitted["model"].predict_proba(fitted["scaled"]).max(axis=1)
         st.download_button("Download assignments CSV", exported.to_csv(index=False),
                            file_name="customer_segments.csv", mime="text/csv")
 
     with compare_tab:
-        st.subheader("Compare cluster counts from 2 to 8")
+        st.subheader("Compare methods and cluster counts")
         st.dataframe(scores, hide_index=True)
-        st.line_chart(scores.set_index("clusters")[["silhouette_score"]])
-        st.line_chart(scores.set_index("clusters")[["inertia"]])
-        st.line_chart(scores.set_index("clusters")[["stability_ari_mean"]])
-        best = int(scores.loc[scores["silhouette_score"].idxmax(), "clusters"])
-        st.write(f"Highest silhouette in this range: {best} clusters.")
-        st.caption("ARI stability compares assignments from repeated seeds; 1 means identical partitions and values near 0 are chance-level agreement. Use all diagnostics with the profile context.")
+        st.write("**Silhouette** (higher is better)")
+        st.line_chart(scores.pivot(index="clusters", columns="algorithm", values="silhouette_score"))
+        st.write("**Davies-Bouldin** (lower is better)")
+        st.line_chart(scores.pivot(index="clusters", columns="algorithm", values="davies_bouldin_score"))
+        st.write("**Assignment stability across five alternate seeds**")
+        st.line_chart(scores.pivot(index="clusters", columns="algorithm", values="stability_ari_mean"))
+        kmeans_scores = scores[scores["algorithm"] == "K-Means"].set_index("clusters")
+        st.write("**K-Means inertia** (lower as k grows; use the elbow as a heuristic)")
+        st.line_chart(kmeans_scores[["inertia"]])
+        gmm_scores = scores[scores["algorithm"] == "Gaussian Mixture"].set_index("clusters")
+        st.write("**Gaussian Mixture information criteria** (lower is preferred within this model family)")
+        st.line_chart(gmm_scores[["aic", "bic"]])
+        best = scores.loc[scores["silhouette_score"].idxmax()]
+        st.write(f"Highest silhouette in the comparison: {best['algorithm']} with {int(best['clusters'])} clusters ({best['silhouette_score']:.3f}).")
+        st.caption("ARI stability compares repeated-seed partitions; 1 means identical assignments up to label order. AIC and BIC apply to Gaussian Mixtures. Treat every diagnostic as a heuristic and verify that the profiles are useful for the intended business question.")
 
 
 if __name__ == "__main__":

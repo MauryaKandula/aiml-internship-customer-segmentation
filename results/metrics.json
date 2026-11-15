@@ -16,6 +16,7 @@
   ],
   "random_state": 42,
   "metrics": {
+    "algorithm": "K-Means",
     "clusters": 2,
     "silhouette_score": 0.2903284869973543,
     "davies_bouldin_score": 1.351501586224928,
@@ -25,5 +26,5 @@
     "stability_ari_std": 0.0
   },
   "interpretation_note": "Cluster IDs are arbitrary; inspect spending profiles.",
-  "stability_note": "ARI compares assignments from five alternate K-Means seeds."
+  "stability_note": "ARI compares assignments from five alternate seeds for the selected algorithm."
 }
