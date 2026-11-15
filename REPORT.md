@@ -1,16 +1,16 @@
-# Project Report: Wholesale Customer Segmentation with K-Means
+# Project Report: Wholesale Customer Segmentation Studio
 
 ## Objective
-Explore groups of wholesale customers with similar annual spending patterns. This is unsupervised learning because no customer segment labels are supplied.
+Explore customer groups based on annual spending across six product categories and provide an interactive way to inspect segment quality and profiles.
 
 ## Dataset
-The UCI Wholesale customers dataset has 440 records and six numeric spending features: Fresh, Milk, Grocery, Frozen, Detergents_Paper, and Delicassen. Channel and Region are retained for descriptive comparison but excluded from fitting. See data/README.md for the citation and license.
+The UCI Wholesale customers dataset has 440 records. Six spending fields are used for clustering. Channel and Region are excluded from fitting and used only for descriptive comparison. Dataset attribution and CC BY 4.0 licensing are documented in data/README.md.
 
 ## Method
-The workflow validates the CSV, applies log1p to reduce skew, standardizes the spending features, then fits K-Means with a fixed seed. It compares candidate cluster counts using inertia and silhouette score, summarizes average feature spending by cluster, and visualizes the results with a two-component PCA projection. Preprocessing and the fitted model are saved for future inference.
+The workflow validates values, applies log1p to reduce skew, standardizes six features, and fits reproducible K-Means. Candidate counts are compared using inertia, silhouette, Davies-Bouldin, and Calinski-Harabasz scores. Five alternate random seeds are compared with adjusted Rand agreement to assess partition stability. PCA provides a two-dimensional display projection. The dashboard reports spending signatures, channel/region mixes, and sample customers.
 
 ## Results
-Run python train.py to generate metrics.json, cluster_profiles.csv, cluster_selection.csv, customer assignments, and a PCA image under artifacts/. The chart is a two-dimensional projection and does not preserve every distance from the full feature space.
+On the bundled dataset, two clusters gave the highest silhouette score among k=2 through k=8: 0.2903. The Davies-Bouldin score was 1.3515, and mean adjusted Rand agreement across five alternate seeds was 1.0000. This indicates stable assignments with modest separation; the segments remain exploratory rather than validated business groups. Run python train.py to regenerate the metrics, profiles, assignments, and PCA figure.
 
 ## Limitations
-The dataset is small and comes from one wholesale distributor. K-Means assumes compact groups under Euclidean distance. These clusters are exploratory examples, not validated business segments.
+The sample represents one historical wholesale distributor. Cluster IDs have no inherent order, and internal metrics do not establish business value. The results should not be generalized to other populations or used as validated marketing policy.

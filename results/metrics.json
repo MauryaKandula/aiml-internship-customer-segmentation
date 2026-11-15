@@ -1,0 +1,29 @@
+{
+  "project": "Wholesale Customer Segmentation: Interactive Analytics",
+  "dataset": "UCI Wholesale customers",
+  "customer_count": 440,
+  "features": [
+    "Fresh",
+    "Milk",
+    "Grocery",
+    "Frozen",
+    "Detergents_Paper",
+    "Delicassen"
+  ],
+  "preprocessing": [
+    "log1p",
+    "StandardScaler"
+  ],
+  "random_state": 42,
+  "metrics": {
+    "clusters": 2,
+    "silhouette_score": 0.2903284869973543,
+    "davies_bouldin_score": 1.351501586224928,
+    "calinski_harabasz_score": 189.04979701772055,
+    "inertia": 1844.064068754211,
+    "stability_ari_mean": 1.0,
+    "stability_ari_std": 0.0
+  },
+  "interpretation_note": "Cluster IDs are arbitrary; inspect spending profiles.",
+  "stability_note": "ARI compares assignments from five alternate K-Means seeds."
+}
