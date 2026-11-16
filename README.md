@@ -51,3 +51,8 @@ Choose a method and cluster count, inspect quality metrics, compare mean spendin
 
 ## Limitations
 This is a small historical sample from one wholesale distributor. Monetary units and collection context should not be generalized beyond the source. The dashboard is an analytical demonstration, not a validated marketing policy.
+
+
+## Copyright & third-party terms
+
+© 2026 Kandula Paul Saketh Maurya for the original project code and documentation. The UCI dataset remains under CC BY 4.0; see [data/README.md](data/README.md) for its source and attribution. Dependencies remain under their respective licenses. This repository does not include a separate project-wide reuse license.
